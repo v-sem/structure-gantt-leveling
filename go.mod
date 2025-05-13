@@ -1,4 +1,4 @@
-module jira
+module structure-gantt-leveling
 
 go 1.24
 

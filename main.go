@@ -11,8 +11,8 @@ import (
 func main() {
 	log.SetOutput(os.Stdout)
 
-	config := flag.String("config", "config.yml", "Путь к конфигурационному файлу YAML (если не указано — config.yml)")
-	structure := flag.String("structure", "", "Название секции из 'structures' для выполнения (если не указано — выполняются все)")
+	config := flag.String("c", "config.yml", "Путь к конфигурационному файлу YAML (если не указано — config.yml)")
+	structure := flag.String("s", "", "Название секции из 'structures' для выполнения (если не указано — выполняются все)")
 
 	flag.Parse()
 
