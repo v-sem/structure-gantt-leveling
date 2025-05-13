@@ -1,0 +1,21 @@
+client:
+  url: http://localhost:8080
+  token: NjE...
+  cookies:
+    - name: JSESSIONID
+      value: your_session_id
+  user_name: jira_client_name
+structures:
+  gantt1:
+    id: 3
+    jql: project = PRJ ORDER BY PlannedEnd, Priority ASC
+    parallel_projects: 1
+#    start_date_id: 20250525
+#  gantt2:
+#    id: 3
+#    jql: project = PRJ2 ORDER BY PlannedEnd, Priority ASC
+#    parallel_projects: 3
+#  gantt_a:
+#    id: 4
+#    jql: project = PRJ ORDER BY PlannedEnd, Priority ASC
+#    parallel_projects: 2
