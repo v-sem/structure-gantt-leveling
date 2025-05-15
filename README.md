@@ -51,12 +51,12 @@ structures:
 
 ### Запуск для всех структур из конфигурации
 ```bash
-go run main.go -c config.yml
+go run . -c config.yml
 ```
 
 ### Запуск для конкретной структуры
 ```bash
-go run main.go -c config.yml -s project1
+go run . -c config.yml -s project1
 ```
 
 ### Параметры командной строки
