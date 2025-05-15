@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"strings"
 	"time"
@@ -24,7 +26,7 @@ type jiraClientTransportWrapper struct {
 }
 
 func (t *jiraClientTransportWrapper) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("Accept", "application/json; charset=UTF-8")
+	req.Header.Set("Accept", "application/json")
 	if t.token != "" {
 		req.Header.Set("Authorization", "Bearer "+t.token)
 	}
@@ -64,7 +66,7 @@ type GanttMeta struct {
 func NewJiraClient(cfg ClientConfig) *JiraClient {
 	// Создаем клиента
 	transportWrapper := &jiraClientTransportWrapper{
-		agent:     cfg.UserName,
+		agent:     "jira-structure-leveling-tool_" + cfg.UserName,
 		token:     cfg.Token,
 		transport: http.DefaultTransport,
 	}
@@ -74,9 +76,16 @@ func NewJiraClient(cfg ClientConfig) *JiraClient {
 			Value: c.Value,
 		})
 	}
+
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	client := &JiraClient{
 		BaseURL: cfg.URL,
 		HTTPClient: &http.Client{
+			Jar:       jar,
 			Timeout:   10 * time.Second,
 			Transport: transportWrapper,
 		},
@@ -253,7 +262,8 @@ func (c *JiraClient) GetRowAttributes(structureID int, rowID int) (*StructureRow
 	}
 
 	// Парсим даты
-	layout := "02/Jan/06 15:04 PM" // формат даты из примера ответа
+	//layout := "02.Jan.06 15:04 PM" // формат даты из примера ответа //TODO: FIXIT разные Ганты могут отдавать даты в разном формате
+	layout := "02.01.06 15:04"
 	if manulStartStr != "" {
 		t, err := time.Parse(layout, manulStartStr)
 		if err != nil {
@@ -355,14 +365,45 @@ func (c *JiraClient) UpdateLevelingDelay(ganttId, rowId int, delay time.Duration
 	return nil
 }
 
-func (c *JiraClient) GetGanttMeta(structureID int) (*GanttMeta, error) {
+func (c *JiraClient) GetGanttId(structureId int) (int, error) {
+	url := fmt.Sprintf("%s/rest/structure-gantt/1.0/gantt/main/%d", c.BaseURL, structureId)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка создания запроса: %w", err)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("ошибка выполнения запроса: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("ошибка ответа: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		Gantt struct {
+			Id int `json:"id"`
+		} `json:"gantt"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return 0, fmt.Errorf("ошибка парсинга ответа: %w", err)
+	}
+
+	return result.Gantt.Id, nil
+}
+
+func (c *JiraClient) GetGanttMeta(structureID, ganttID int) (*GanttMeta, error) {
 	url := fmt.Sprintf("%s/rest/structure/2.0/poll", c.BaseURL)
 
 	payload := map[string]interface{}{
 		"extensionRequests": map[string]interface{}{
 			"com.almworks.structure.gantt:gantt-extension": map[string]interface{}{
 				"structureId": structureID,
-				"ganttId":     structureID,
+				"ganttId":     ganttID,
 			},
 		},
 	}
