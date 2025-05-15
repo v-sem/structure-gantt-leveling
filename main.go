@@ -51,9 +51,14 @@ func main() {
 
 func calculateLeveling(client *JiraClient, structure StructureConfig) error {
 	log.Printf("Получаем информацию о Gantt-диограмме для структуры %d\n", structure.ID)
-	gantt, err := client.GetGanttMeta(structure.ID)
+	ganttID, err := client.GetGanttId(structure.ID)
 	if err != nil {
-		return fmt.Errorf("ошибка получения информации о Gantt-диограмме: %v", err)
+		return fmt.Errorf("ошибка получения ID диаграммы Ганта: %v", err)
+	}
+
+	gantt, err := client.GetGanttMeta(structure.ID, ganttID)
+	if err != nil {
+		return fmt.Errorf("ошибка получения информации о диаграмме Ганта: %v", err)
 	}
 
 	log.Printf("Получаем соответсвие issueID к rowID в структуре %d\n", structure.ID)
@@ -120,7 +125,8 @@ func calculateLeveling(client *JiraClient, structure StructureConfig) error {
 		}
 
 		log.Printf("Выставляем задержку выравнивания %s для задачи %s\n", levelingDelay, issue.Key)
-		err = client.UpdateLevelingDelay(structure.ID, rowIDInt, levelingDelay, attributes.Signature, attributes.Version)
+
+		err = client.UpdateLevelingDelay(ganttID, rowIDInt, levelingDelay, attributes.Signature, attributes.Version)
 		if err != nil {
 			log.Fatalf("ошибка обновления задержки выравнивания: %v", err)
 		}
